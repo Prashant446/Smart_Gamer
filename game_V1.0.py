@@ -1,5 +1,6 @@
 import pygame as pyg
 import random
+from behaviour_nodes import *
 
 # initialise pygames
 pyg.init()
@@ -34,6 +35,7 @@ class ship:
                 pyg.transform.scale(pyg.image.load('resources/Blue/Small_ship_blue/R3.png'), sptSize)]
     flyLeft = [pyg.transform.scale(pyg.image.load('resources/Blue/Small_ship_blue/L2.png'), sptSize),
                pyg.transform.scale(pyg.image.load('resources/Blue/Small_ship_blue/L3.png'), sptSize)]
+    bulletInterval = 5
 
     def __init__(self, x, y):
         self.x = x
@@ -58,6 +60,15 @@ class ship:
             win.blit(self.flyLeft[self.moveCount % 2], (self.x, self.y))
         pyg.draw.rect(win, (0, 255, 0), (self.x + 15, self.y + self.width + 20, self.health/10, 10), 0)
         pyg.draw.rect(win, (10, 255, 0), (self.x + 15, self.y + self.width + 20, self.width, 10), 1)
+
+    def fire(self):
+        if not start and not end:
+            if self.bulletInterval > 4:
+                fireSound.play()
+                self.bulletInterval = 0
+                bullets.append(shots(player.x + (player.width // 2), player.y))
+            else:
+                self.bulletInterval += 1
 
 
 class Asteroids:
@@ -152,7 +163,6 @@ def redrawWin(start, end):
             asteroid.draw(win)
 
     pyg.display.update()
-
 
 score = 0
 restartCounter = 100
