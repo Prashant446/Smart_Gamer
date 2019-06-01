@@ -47,7 +47,7 @@ class ship:
         self.y = y
         self.dir = 0
         self.vel = 15
-        self.width = 90     # not image width but the width of the rectangle around it
+        self.width = 95     # not image width but the width of the rectangle around it
         self.moveCount = 0  # to switch between sprites
         self.health = 900
 
@@ -84,7 +84,8 @@ class Asteroids:
         self.x = x
         self.y = -s
         self.vel = 6 - (s-100)//50
-        self.width = s - 20         # width of box to fit around asteroid
+        self.width = s - 20
+        self.height = s - 25         # height and width of box to fit around asteroid
         self.pop = False
         self.size = (s, s)
         self.health = s*2

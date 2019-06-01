@@ -1,7 +1,7 @@
 import pygame as pyg
 import random
 from behaviour_nodes import *
-from pynput.keyboard import Key, Controller
+# from pynput.keyboard import Key, Controller
 
 # initialise pygames
 pyg.init()
@@ -43,9 +43,9 @@ class ship:
         self.y = y
         self.dir = 0
         self.vel = 15
-        self.width = 90     # not image width but the width of the rectangle around it
+        self.width = 95     # not image width but the width of the rectangle around it
         self.moveCount = 0  # to switch between sprites
-        self.health = 900
+        self.health = 950
 
     def draw(self, win):
         if self.moveCount == 30:
@@ -59,6 +59,7 @@ class ship:
             win.blit(self.flyRight[self.moveCount % 2], (self.x, self.y))
         elif self.dir == -1:
             win.blit(self.flyLeft[self.moveCount % 2], (self.x, self.y))
+        # pyg.draw.rect(win, (0, 255, 0), (self.x + 15, self.y, self.width, self.width), 1)
         pyg.draw.rect(win, (0, 255, 0), (self.x + 15, self.y + self.width + 20, self.health/10, 10), 0)
         pyg.draw.rect(win, (10, 255, 0), (self.x + 15, self.y + self.width + 20, self.width, 10), 1)
 
@@ -89,6 +90,7 @@ class Asteroids:
         self.y = -s
         self.vel = 6 - (s-100)//50
         self.width = s - 20
+        self.height = s - 25
         self.pop = False
         self.size = (s, s)
         self.health = s*2
@@ -104,7 +106,8 @@ class Asteroids:
     def draw(self, win):
         self.motion()
         win.blit(self.img, (self.x, self.y))
-        # pyg.draw.rect(win, (255, 0, 0), (self.x+10, self.y, self.width, self.width), 2)
+        # if self == findTarget.target:
+        #     pyg.draw.rect(win, (255, 0, 0), (self.x+10, self.y + 9, self.width, self.height), 2)
 
 
 class shots():
@@ -170,6 +173,8 @@ def redrawWin(start, end):
 
     for asteroid in asteroids:
         if asteroid.pop:
+            if asteroid == findTarget.target:
+                findTarget.target = None
             asteroids.pop(asteroids.index(asteroid))
         else:
             asteroid.draw(win)
@@ -183,12 +188,22 @@ def redrawWin(start, end):
 
 moveleft = Move("moveleft", -1, player)
 moveright = Move("moveright", 1, player)
+# approach_defenseSelector = Selector("approach/defense",)
 
-
+# Fire subtree
 firenode = FireNode("firenode", player)
-istarget = TargetInRange("istarget", player, asteroids)
-attackSequence = AttackSequence("attackSequence", children=[istarget, firenode])
-rootSelector = Sequence("rootSelector", children=[attackSequence])
+istarget = RandomTargetInRange("istarget", player, asteroids)
+shoot = AttackSequence("ShootNode", children=[istarget, firenode])
+# Target Approach Subtree
+findTarget = findBestTarget("TargetLocatorNode", player, asteroids)
+
+isinrange = TargetInRange("IsTheTargetInRange", player, findTarget)
+approachTarget = ApproachTarget("AprroachTargetNode", player, findTarget)
+ontarget = Selector("IsOnTarget", children=[isinrange, approachTarget])
+
+approachSeq = Sequence("ApproachSequenceNode", children=[findTarget, ontarget])
+
+rootSelector = Loop("rootSelector", children=[approachSeq, shoot])
 
 
 score = 0
@@ -233,7 +248,7 @@ while play:
         asteroidInterval = 1
         size = random.randint(100, 200)
         pos_x = random.randint(0, 800)
-        if abs(lastPosition - pos_x) > 300 and (pos_x - size // 2) < winSize[0]:
+        if abs(lastPosition - pos_x) > 300 and (pos_x + size // 2) < winSize[0]:
             lastPosition = pos_x
             asteroids.append(Asteroids(pos_x, size))
     else:
@@ -259,9 +274,9 @@ while play:
 
         if player.health == 0:
             end = True
+
         rootSelector.run()
         keys = pyg.key.get_pressed()
-
         if keys[pyg.K_RIGHT] and player.x + player.width < winSize[0]:
             player.moveRight()
         elif keys[pyg.K_LEFT] and player.x > 0:

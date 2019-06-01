@@ -140,34 +140,17 @@ class Loop(task):
         Loop over one or more subtasks for the given number of iterations
         Use the value -1 to indicate a continual loop.
     """
-    def __init__(self, name, announce=True, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
         super(Loop, self).__init__(name, *args, **kwargs)
 
-        self.iterations = kwargs['iterations']
-        self.announce = announce
-        self.loop_count = 0
+        # self.iterations = 1
+        # self.loop_count = 0
         self.name = name
-        print("Loop iterations: " + str(self.iterations))
 
     def run(self):
-
-        while True:
-            if self.iterations != -1 and self.loop_count >= self.iterations:
-                return TaskStatus.SUCCESS
-
-            for c in self.children:
-                while True:
-                    c.status = c.run()
-
-                    if c.status == TaskStatus.SUCCESS:
-                        break
-                    return c.status
-                c.reset()
-
-            self.loop_count += 1
-
-            if self.announce:
-                print(self.name + " COMPLETED " + str(self.loop_count) + " LOOP(S)")
+        for c in self.children:
+            c.run()
+        return TaskStatus.SUCCESS
 
 
 class IgnoreFailure(task):
@@ -213,13 +196,13 @@ class FireNode(task):
         return TaskStatus.FAILURE
 
 
-class TargetInRange(task):
+class RandomTargetInRange(task):
     target = None
 
     def __init__(self, name, player, asteroids, *args, **kwargs):
         self.player = player
         self.asteroids = asteroids
-        super(TargetInRange, self).__init__(name, *args, **kwargs)
+        super(RandomTargetInRange, self).__init__(name, *args, **kwargs)
 
     def run(self):
         bullet_x = self.player.x + self.player.width//2 + 5
@@ -238,7 +221,92 @@ class Move(task):
         self.player = player
 
     def run(self):
-        if self.direction == 1:
+        if self.direction == -1:
             self.player.moveLeft()
-        elif self.direction == -1:
+        elif self.direction == 1:
             self.player.moveRight()
+
+
+# class Check(task):
+#
+#     def __init__(self, name, direction, player, asteroids, *args, **kwargs):
+#         super(Check, self).__init__(name, *args, **kwargs)
+#         self.player = player
+#         self.direction = direction
+#         self.asteroids = asteroids
+#
+#     def run(self):
+#         for asteroid in self.asteroids:
+#             pass
+
+
+class findBestTarget(task):
+    target = None
+    targetdirection = 0
+
+    def __init__(self, name, player, asteroids, *args, **kwargs):
+        super(findBestTarget, self).__init__(name, *args, **kwargs)
+        self.asteroids = asteroids
+        self.player = player
+
+    def run(self):
+        print('searching for target')
+        if self.target is not None:
+            delta_y = self.player.y + 5 - self.target.y - 9 - self.target.height
+            if delta_y <= 0:
+                self.target = None
+        if self.target is None:
+            minm = 100000
+            for asteroid in self.asteroids:
+                tempdirn = 1
+                delta_x = asteroid.x + 10 + asteroid.width//2 - self.player.x - 15 - self.player.width//2
+                if delta_x < 0:
+                    tempdirn = -1
+                    delta_x = (-delta_x)
+                # delta_x += (asteroid.width//2 + self.player.width//2)
+                delta_y = self.player.y + 5 - asteroid.y - 9 - asteroid.height
+
+                if delta_y > 0 and delta_x * asteroid.vel < delta_y * self.player.vel:
+                    if delta_y/asteroid.vel < minm:
+                        minm = delta_y/asteroid.vel
+                        self.target = asteroid
+                        self.targetdirection = tempdirn
+
+        if self.target is None:
+            self.targetdirection = 0
+            return TaskStatus.FAILURE
+        else:
+            return TaskStatus.SUCCESS
+
+
+class TargetInRange(task):
+
+    def __init__(self, name, player, findTarget, *args, **kwargs):
+        super(TargetInRange, self).__init__(name, *args, **kwargs)
+        self.player = player
+        self.findTarget = findTarget
+
+    def run(self):
+        bullet_x = self.player.x + self.player.width // 2 + 5
+        target = self.findTarget.target
+        if target is not None:
+            if bullet_x > target.x and bullet_x < target.x + target.width:
+                return TaskStatus.SUCCESS
+            else:
+                print("going to approach")
+                return TaskStatus.FAILURE
+
+
+class ApproachTarget(task):
+
+    def __init__(self, name, player, findTarget, *args, **kwargs):
+        super(ApproachTarget, self).__init__(name, *args, **kwargs)
+        self.player = player
+        self.findTarget = findTarget
+
+    def run(self):
+        print('approaching')
+        direction = self.findTarget.targetdirection
+        if direction != 0:
+            print(direction)
+            self.player.x += direction * self.player.vel

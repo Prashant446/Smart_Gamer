@@ -1,6 +1,5 @@
 import pygame as pyg
 import random
-from behaviour_nodes import *
 
 # initialise pygames
 pyg.init()
@@ -42,7 +41,7 @@ class ship:
         self.y = y
         self.dir = 0
         self.vel = 15
-        self.width = 90     # not image width but the width of the rectangle around it
+        self.width = 95     # not image width but the width of the rectangle around it
         self.moveCount = 0  # to switch between sprites
         self.health = 900
 
@@ -58,6 +57,8 @@ class ship:
             win.blit(self.flyRight[self.moveCount % 2], (self.x, self.y))
         elif self.dir == -1:
             win.blit(self.flyLeft[self.moveCount % 2], (self.x, self.y))
+
+        # pyg.draw.rect(win, (0, 255, 0), (self.x + 15, self.y + 5, self.width, self.width), 1)
         pyg.draw.rect(win, (0, 255, 0), (self.x + 15, self.y + self.width + 20, self.health/10, 10), 0)
         pyg.draw.rect(win, (10, 255, 0), (self.x + 15, self.y + self.width + 20, self.width, 10), 1)
 
@@ -78,6 +79,7 @@ class Asteroids:
         self.y = -s
         self.vel = 6 - (s-100)//50
         self.width = s - 20
+        self.height = s - 25
         self.pop = False
         self.size = (s, s)
         self.health = s*2
@@ -92,7 +94,7 @@ class Asteroids:
     def draw(self, win):
         self.motion()
         win.blit(self.img, (self.x, self.y))
-        # pyg.draw.rect(win, (255, 0, 0), (self.x+10, self.y, self.width, self.width), 2)
+        pyg.draw.rect(win, (255, 0, 0), (self.x+10, self.y + 9, self.width, self.height), 2)
 
 
 class shots():
