@@ -43,7 +43,7 @@ class ship:
         self.vel = 15
         self.width = 95     # not image width but the width of the rectangle around it
         self.moveCount = 0  # to switch between sprites
-        self.health = 900
+        self.health = 950
 
     def draw(self, win):
         if self.moveCount == 30:
@@ -94,7 +94,7 @@ class Asteroids:
     def draw(self, win):
         self.motion()
         win.blit(self.img, (self.x, self.y))
-        pyg.draw.rect(win, (255, 0, 0), (self.x+10, self.y + 9, self.width, self.height), 2)
+        # pyg.draw.rect(win, (255, 0, 0), (self.x+10, self.y + 9, self.width, self.height), 2)
 
 
 class shots():

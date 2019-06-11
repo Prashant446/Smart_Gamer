@@ -75,12 +75,14 @@ class ship:
                 return False
 
     def moveRight(self):
-        self.dir = 1
-        self.x += self.vel
+        if self.x + self.width < 960 - self.vel:
+            self.dir = 1
+            self.x += self.vel
 
     def moveLeft(self):
-        self.dir = -1
-        self.x -= self.vel
+        if self.x > self.vel:
+            self.dir = -1
+            self.x -= self.vel
 
 
 class Asteroids:
@@ -203,8 +205,25 @@ ontarget = Selector("IsOnTarget", children=[isinrange, approachTarget])
 
 approachSeq = Sequence("ApproachSequenceNode", children=[findTarget, ontarget])
 
-rootSelector = Loop("rootSelector", children=[approachSeq, shoot])
 
+
+# defence subtree
+
+#both side obstacle
+leftCheck = CheckLeft("leftCheck", player, asteroids)
+rightCheck = CheckRight("rightCheck", player, asteroids)
+bestMove = MoveBest("bestMove", player, leftCheck, rightCheck)
+
+bothSide = Sequence("bothSideSequence", children=[leftCheck, rightCheck, bestMove])
+
+#left side  obstacle
+leftSeq = Sequence("leftSideSequence", children=[leftCheck, moveright])
+
+#right side obstacle
+rightSeq = Sequence("rightSideSequence", children=[rightCheck, moveleft])
+
+defenceSelector = Selector("defenceSelector", children=[bothSide, leftSeq, rightSeq])
+rootSelector = rootLoop("rootSelector", findTarget, children=[defenceSelector, approachSeq, shoot])
 
 score = 0
 restartCounter = 100
@@ -214,7 +233,8 @@ start = True
 delay = False
 lastPosition = 100
 bulletInterval = 5
-asteroidInterval = 18
+asteroidInterval = 5
+asteroidIntervalCounter = asteroidInterval + 1
 play = True
 while play:
     clock.tick(30)
@@ -224,8 +244,8 @@ while play:
 
     for asteroid in asteroids:
         if max(abs(asteroid.x + 10 + asteroid.width // 2 - player.x - 15 - player.width // 2),
-               abs(asteroid.y + asteroid.width // 2 -
-                   player.y - 10 - player.width // 2)) < ((asteroid.width + player.width) // 2 - 10):
+               abs(asteroid.y + 9 + asteroid.height // 2 -
+                   player.y - 5 - player.width // 2)) < ((asteroid.width + player.width) // 2 - 10):
             # print('You hit an asteroid')
             if not start and not end:
                 if player.health - 100 > 0:
@@ -244,15 +264,15 @@ while play:
             hitSound.play()
             asteroid.pop = True
 
-    if asteroidInterval > 19:
-        asteroidInterval = 1
+    if asteroidIntervalCounter > asteroidInterval:
+        asteroidIntervalCounter = 1
         size = random.randint(100, 200)
         pos_x = random.randint(0, 800)
         if abs(lastPosition - pos_x) > 300 and (pos_x + size // 2) < winSize[0]:
             lastPosition = pos_x
             asteroids.append(Asteroids(pos_x, size))
     else:
-        asteroidInterval += 1
+        asteroidIntervalCounter += 1
 
     if start:
         keys = pyg.key.get_pressed()
@@ -275,7 +295,7 @@ while play:
         if player.health == 0:
             end = True
 
-        rootSelector.run()
+        # rootSelector.run()
         keys = pyg.key.get_pressed()
         if keys[pyg.K_RIGHT] and player.x + player.width < winSize[0]:
             player.moveRight()

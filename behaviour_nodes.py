@@ -135,20 +135,22 @@ class ParallelAll(task):
             return TaskStatus.RUNNING
 
 
-class Loop(task):
+class rootLoop(task):
     """
         Loop over one or more subtasks for the given number of iterations
         Use the value -1 to indicate a continual loop.
     """
-    def __init__(self, name, *args, **kwargs):
-        super(Loop, self).__init__(name, *args, **kwargs)
-
+    def __init__(self, name, findBestTarget, *args, **kwargs):
+        super(rootLoop, self).__init__(name, *args, **kwargs)
+        self.findBestTarget = findBestTarget
         # self.iterations = 1
         # self.loop_count = 0
         self.name = name
 
     def run(self):
         for c in self.children:
+            if c == self.children[0]:
+                self.findBestTarget.target = None
             c.run()
         return TaskStatus.SUCCESS
 
@@ -225,19 +227,7 @@ class Move(task):
             self.player.moveLeft()
         elif self.direction == 1:
             self.player.moveRight()
-
-
-# class Check(task):
-#
-#     def __init__(self, name, direction, player, asteroids, *args, **kwargs):
-#         super(Check, self).__init__(name, *args, **kwargs)
-#         self.player = player
-#         self.direction = direction
-#         self.asteroids = asteroids
-#
-#     def run(self):
-#         for asteroid in self.asteroids:
-#             pass
+        return TaskStatus.SUCCESS
 
 
 class findBestTarget(task):
@@ -250,16 +240,16 @@ class findBestTarget(task):
         self.player = player
 
     def run(self):
-        print('searching for target')
         if self.target is not None:
             delta_y = self.player.y + 5 - self.target.y - 9 - self.target.height
             if delta_y <= 0:
                 self.target = None
         if self.target is None:
+            print('searching for target')
             minm = 100000
             for asteroid in self.asteroids:
                 tempdirn = 1
-                delta_x = asteroid.x + 10 + asteroid.width//2 - self.player.x - 15 - self.player.width//2
+                delta_x = asteroid.x + asteroid.width//2 - self.player.x - 5 - self.player.width//2
                 if delta_x < 0:
                     tempdirn = -1
                     delta_x = (-delta_x)
@@ -267,7 +257,7 @@ class findBestTarget(task):
                 delta_y = self.player.y + 5 - asteroid.y - 9 - asteroid.height
 
                 if delta_y > 0 and delta_x * asteroid.vel < delta_y * self.player.vel:
-                    if delta_y/asteroid.vel < minm:
+                    if delta_y/asteroid.vel + 20 * delta_x/self.player.vel < minm:
                         minm = delta_y/asteroid.vel
                         self.target = asteroid
                         self.targetdirection = tempdirn
@@ -276,6 +266,7 @@ class findBestTarget(task):
             self.targetdirection = 0
             return TaskStatus.FAILURE
         else:
+            print('Target Found')
             return TaskStatus.SUCCESS
 
 
@@ -308,5 +299,75 @@ class ApproachTarget(task):
         print('approaching')
         direction = self.findTarget.targetdirection
         if direction != 0:
-            print(direction)
+            # print(direction)
             self.player.x += direction * self.player.vel
+
+class CheckLeft(task):
+
+    def __init__(self, name, player, asteroids, *args, **kwargs):
+        super(CheckLeft, self).__init__(name, *args, **kwargs)
+        self.player = player
+        self.asteroids = asteroids
+        self.nearestObstacleDist = 100000
+
+    def run(self):
+        self.nearestObstacleDist = 100000
+        for asteroid in self.asteroids:
+            delta_y = self.player.y + 5 - asteroid.y - 9 - asteroid.height
+            # bullet_x = self.player.x + self.player.width // 2 + 5
+            delta_x = self.player.x + 5 + self.player.width // 2 - asteroid.x - asteroid.width//2
+            if 0 < delta_x < (self.player.width + asteroid.width)//2 + 15:
+                if delta_y * self.player.vel < asteroid.vel * ((self.player.width + asteroid.width)//2 - delta_x + 30):
+                    if self.nearestObstacleDist > delta_y:
+                        self.nearestObstacleDist = delta_y
+
+        if self.nearestObstacleDist == 100000:
+            return TaskStatus.FAILURE
+        else:
+            return TaskStatus.SUCCESS
+
+
+class CheckRight(task):
+
+    def __init__(self, name, player, asteroids, *args, **kwargs):
+        super(CheckRight, self).__init__(name, *args, **kwargs)
+        self.player = player
+        self.asteroids = asteroids
+        self.nearestObstacleDist = 100000
+
+    def run(self):
+        self.nearestObstacleDist = 100000
+        for asteroid in self.asteroids:
+            delta_y = self.player.y + 5 - asteroid.y - 9 - asteroid.height
+            # bullet_x = self.player.x + self.player.width // 2 + 5
+            delta_x = asteroid.x + asteroid.width//2 - self.player.x - 5 - self.player.width // 2
+            if 0 < delta_x < (self.player.width + asteroid.width)//2 + 15:
+                if delta_y * self.player.vel < asteroid.vel * ((self.player.width + asteroid.width)//2 - delta_x + 30):
+                    if self.nearestObstacleDist > delta_y:
+                        self.nearestObstacleDist = delta_y
+
+        if self.nearestObstacleDist == 100000:
+            return TaskStatus.FAILURE
+        else:
+            return TaskStatus.SUCCESS
+
+
+class MoveBest(task):
+
+    def __init__(self, name, player, leftNearest, rightNearest, *args, **kwargs):
+        super(MoveBest, self).__init__(name, *args, **kwargs)
+        self.player = player
+        self.leftNearest = leftNearest
+        self.rightNearest = rightNearest
+
+    def run(self):
+        if self.player.x + 15 <= self.player.width:
+            self.player.moveRight()
+        elif self.player.x + 15 + self.player.width > 900:
+            self.player.moveLeft()
+        elif self.leftNearest.nearestObstacleDist > self.rightNearest.nearestObstacleDist:
+            self.player.moveLeft()
+        else:
+            self.player.moveRight()
+        return TaskStatus.SUCCESS
+

@@ -49,7 +49,7 @@ class ship:
         self.vel = 15
         self.width = 95     # not image width but the width of the rectangle around it
         self.moveCount = 0  # to switch between sprites
-        self.health = 900
+        self.health = 950
 
     def draw(self, win):
         if self.moveCount == 30:
@@ -352,23 +352,5 @@ while play:
 
     redrawWin(start, end)
 
-# while 1:
-#     ret, img = cap.read()
-#     height, width, _ = img.shape
-#     thresh = imageProcessing(img)
-#     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-#     cv2.drawContours(img, contours, -1, (122, 122, 0), 2)
-#
-#     if len(contours) > 0:
-#         center = largestContour(contours)
-#
-#     # cv2.line(img, (int(width / 2) - 70, 0), (int(width / 2) - 70, height), (255, 255, 255), 5)
-#     # cv2.line(img, (int(width / 2) + 70, 0), (int(width / 2) + 70, height), (255, 255, 255), 5)
-#
-#     disp_img = cv2.flip(img, 1)
-#     cv2.imshow('Object detection', disp_img)
-
-# k = cv2.waitKey(0) & 0xFF
-# if k == 27:
 cap.release()
 cv2.destroyAllWindows()
